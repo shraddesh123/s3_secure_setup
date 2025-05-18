@@ -130,7 +130,7 @@ resource "random_id" "bucket_id" {
 }
 #S3 Bucket 
 resource "aws_s3_bucket" "secure_bucket" {
-  bucket        = "project-bucket-${random_id.bucket_id.hex}"
+  bucket        = "${var.bucketname}${random_id.bucket_id.hex}"
   force_destroy = true
   tags          = { Name = "secure-bucket" }
 }

@@ -11,3 +11,4 @@ crash.log
 # Ignore CLI configuration
 .terraform/
 .terraform.lock.hcl
+.gitignore

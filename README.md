@@ -49,3 +49,101 @@ variable "bucket_name" {
     error_message = "Bucket name must be between 3 and 63 characters long."
   }
 }
+## ✅ Step 1: Generate SSH Key Pair
+
+Generate an SSH key pair on your local machine:
+
+```bash
+ssh-keygen -t rsa -b 4096 -f ~/.ssh/main-key
+```
+
+This creates:
+
+- `~/.ssh/main-key` (private key)
+- `~/.ssh/main-key.pub` (public key)
+
+---
+
+## ✅ Step 2: Use Public Key in Terraform
+
+Reference the public key in your Terraform configuration:
+
+```hcl
+resource "aws_key_pair" "kp" {
+  key_name   = "main-key"
+  public_key = file("~/.ssh/main-key.pub")
+}
+```
+
+---
+
+## ✅ Step 3: Initialize and Deploy
+
+Run the following to initialize and deploy your infrastructure:
+
+```bash
+terraform init
+terraform apply
+```
+
+Approve the plan when prompted.
+
+---
+
+## ✅ Step 4: Copy Private Key to Bastion (Public EC2)
+
+Get the public EC2 IP:
+
+```bash
+terraform output public_instance_ip
+```
+
+Then copy the private key to the bastion host:
+
+```bash
+scp -i ~/.ssh/main-key ~/.ssh/main-key ec2-user@<public_instance_ip>:~/main-key.pem
+```
+
+Replace `<public_instance_ip>` with the actual IP.
+
+---
+
+## ✅ Step 5: SSH Into Public EC2
+
+SSH into the bastion host:
+
+```bash
+ssh -i ~/.ssh/main-key ec2-user@<public_instance_ip>
+```
+
+Once inside, set appropriate permissions on the key:
+
+```bash
+chmod 400 main-key.pem
+```
+
+---
+
+## ✅ Step 6: SSH Into Private EC2
+
+Get the private EC2 IP:
+
+```bash
+terraform output private_instance_ip
+```
+
+From the public EC2, connect to the private EC2:
+
+```bash
+ssh -i main-key.pem ec2-user@<private_instance_ip>
+```
+
+---
+
+## 🧼 Cleanup
+
+To destroy all created resources:
+
+```bash
+terraform destroy
+```

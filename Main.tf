@@ -63,7 +63,7 @@ resource "aws_route_table_association" "private" {
 
 #Security Group 
 
-resource "aws_security_group" "ec2" {
+resource "aws_security_group" "private_sg" {
   name        = "ec2-private-sg"
   description = "Allow SSH from a bastion or VPN only"
   vpc_id      = aws_vpc.Main_vpc.id
@@ -170,10 +170,52 @@ resource "aws_instance" "private" {
   ami                         = "ami-0c94855ba95c71c99" #us-east-1
   instance_type               = "t3.micro"
   subnet_id                   = aws_subnet.private.id
-  vpc_security_group_ids      = [aws_security_group.ec2.id]
+  vpc_security_group_ids      = [aws_security_group.private_sg.id]
   associate_public_ip_address = false
   iam_instance_profile        = aws_iam_instance_profile.ec2.name
+  key_name                    = aws_key_pair.kp.key_name
 
   # No hardcoded secrets; use IAM role for AWS access
   tags = { Name = "private-ec2" }
+}
+resource "aws_security_group" "public_sg" {
+  vpc_id = aws_vpc.Main_vpc.id
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  tags = { Name = "public_sg" }
+}
+resource "aws_key_pair" "kp" {
+  key_name   = "main-key"
+  public_key = file("C:/Users/Asus/Downloads/my-key.pem")
+}
+resource "aws_instance" "public_instance" {
+  ami                         = "ami-0c94855ba95c71c99"
+  subnet_id                   = aws_subnet.public.id
+  vpc_security_group_ids      = [aws_security_group.public_sg.id]
+  associate_public_ip_address = true
+  instance_type               = "t3.micro"
+  key_name                    = aws_key_pair.kp.key_name
+}
+output "public_instance_ip" {
+  value = aws_instance.public_instance.public_ip
+}
+
+output "private_instance_ip" {
+  value = aws_instance.private.private_ip
 }
